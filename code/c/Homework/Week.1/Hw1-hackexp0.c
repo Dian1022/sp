@@ -1,3 +1,4 @@
+//使用遞迴下降法
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -8,13 +9,13 @@ char *tokens;
 
 int E();
 int F();
-int T();
 
 void error(char *msg) {
   printf("%s", msg);
   assert(0);
 }
 
+//取得接下來的字元
 char ch() {
   char c = tokens[tokenIdx];
   return c;
@@ -39,11 +40,10 @@ int nextTemp() {
 void genOp1(int i, char c) {
   printf("# t%d=%c\n", i, c);
   // t1=3 轉成 @3; D=A; @t1; M=D
-  // t1=x 轉成 @x; D=M; @t1; M=M
   printf("@%c\n", c);
-  char AM = (isdigit(c)) ? 'A':'M';
-  printf("D=%c\n", AM);
- // printf("D=A\n");
+  //判斷是數字(D=A)還是變數(D=M)
+  if(isdigit(c)) printf("D=A\n");
+  else if(isalpha(c)) printf("D=M\n");
   printf("@t%d\n", i);
   printf("M=D\n");
 }
@@ -59,6 +59,19 @@ void genOp2(int i, int i1, char op, int i2) {
   printf("M=D\n");
 }
 
+// T = F ([*/] F)*
+int T() {
+  int f1 = F();
+  while(isNext("*/")) {
+    char op = next();
+    int f2 = F();
+    int f = nextTemp();
+    genOp2(f, f1, op, f2);
+    f1 = f;
+  }
+  return f1;
+}
+
 // E = T ([+-] T)*
 int E() {
   int i1 = T();
@@ -72,24 +85,11 @@ int E() {
   return i1;
 }
 
-// T = F ([*/] F)*
-int T() {
-  int f1 = F();
-  while (isNext("*/")) {
-    char op=next();
-    int f2 = F();
-    int f = nextTemp();
-    printf("t%d=t%d%ct%d\n", f, f1, op, f2);
-    f1 = f;
-  }
-  return f1;
-}
-
-// F = Number | Id | '(' E ')'
+// F =  Number | Id | '(' E ')'
 int F() {
   int f;
   char c = ch();
-  if (isdigit(ch()) || isalpha(ch())) {
+  if (isdigit(c) || (c >= 'a' && c <= 'z')) {
     next(); // skip c
     f = nextTemp();
     genOp1(f, c);
@@ -111,8 +111,7 @@ void parse(char *str) {
 
 int main(int argc, char * argv[]) {
   printf("=== EBNF Grammar =====\n");
-  printf("E=F ([+-] F)*\n");
-  printf("T=F ([*/] F)*\n");
+  printf("E=F ([+-*/] F)*\n");
   printf("F=Number | '(' E ')'\n");
   printf("==== parse:%s ========\n", argv[1]);
   parse(argv[1]);
